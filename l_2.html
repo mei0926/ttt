@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;600&display=swap" rel="stylesheet"/>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.json">
+    <script>
+        function getActivePage() {
+        return document.querySelector('.page.active');
+        }
+        // URLパラメータから指定されたクエリパラメータを取得
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        // CSVを読み込み、"e" パラメータに基づきイベント名をHTMLに反映する
+        function loadCSVAndPopulateEvent() {
+            const eParam = getQueryParam('e'); // "e" パラメータを取得
+
+            if (eParam) {
+                fetch('data.csv') // CSVファイルを読み込む
+                    .then(response => response.text())
+                    .then(csvData => {
+                        const rows = csvData.split('\n');
+                        const headers = rows[0].split(',');
+
+                        // 各行のデータを検索
+                        for (let i = 1; i < rows.length; i++) {
+                            const cols = rows[i].split(',');
+                            if (cols[0] === eParam) { // "e" パラメータと一致する行を探す
+                                const data = {
+                                    event: cols[1],   // イベント名
+                                    day: cols[2],     // 開催日
+                                    open: cols[3],    // 開場
+                                    start: cols[4],   // 開演
+                                    type: cols[5],    // 券種
+                                    ref: cols[6],     // 種別
+                                    price: parseInt(cols[7], 10).toLocaleString(), // 金額を数値に変換し、カンマ区切りにフォーマット
+                                };
+                                const page = getActivePage();
+
+                                page.querySelector('#event').textContent = data.event;
+                                page.querySelector('#day').textContent = data.day;
+                                page.querySelector('#open').textContent = data.open;
+                                page.querySelector('#start').textContent = data.start;
+                                // 任意改行マーカーを <br> にする
+                                const typeHtml = data.type.replace(/\|\|/g, '<br>');
+                                page.querySelector('#type').innerHTML = typeHtml;
+                                page.querySelector('#ref').textContent = data.ref;
+                                page.querySelector('#price').textContent = data.price;
+
+
+
+                                // refがnullまたは空文字列なら、seibanクラスを持つ要素を非表示にする
+                                if (!data.ref) {
+                                    const page = getActivePage();
+                                    const seibanElements = page.getElementsByClassName('#seiban');
+                                    for (let j = 0; j < seibanElements.length; j++) {
+                                        seibanElements[j].style.display = 'none';
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    })
+                    .catch(error => console.error('CSVの読み込みに失敗しました:', error));
+            }
+        }
+
+        // 整理番号を設定する関数
+        function setNumber() {
+            const nParam = getQueryParam('n'); // "n" パラメータを取得
+            if (nParam) { // nParamがnullでないか確認
+                const page = getActivePage();
+                page.querySelector("#number").innerText = nParam;
+                setNameFromNumber(nParam); // ここで取得したnParamを使って名前を設定
+            }
+        }
+
+    // "number" の値を元に名前を設定
+function setNameFromNumber(key) {
+    const data = {
+"Ｂ列7番": "松本　遼以",
+"Ｃ列13番": "渡邉　恭平",
+"Ｃ列10番": "吉井　勇人",
+"Ｃ列14番": "久遠　律",
+"Ａ列13番": "横山　武蔵",
+"Ｂ列22番": "小形　恒一"
+    };
+
+    document.getElementById("tname").textContent =
+        data[key] || "該当なし";
+}
+
+
+
+               // ページを開いた時刻をフォーマットして表示
+function setCurrentTime() {
+  const page = getActivePage();
+  if (!page) return;
+
+  const timeEl = page.querySelector('#time');
+  if (!timeEl) return;   // ← これ超重要
+
+  const now = new Date();
+  const formattedTime =
+    `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ` +
+    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+  timeEl.textContent = formattedTime;
+}
+
+
+
+        // ページがロードされたら関数を実行
+window.addEventListener('DOMContentLoaded', () => {
+  eParam = getQueryParam('e');
+  nParam = getQueryParam('n');
+
+  loadCSVAndPopulateEvent();
+  setNumber();
+  setCurrentTime();
+  initSwipe();   // ← スワイプ初期化を関数化
+});
+
+    </script>
+
+    <script>
+        let startX = 0; // タッチ開始位置（X軸）
+        let startY = 0; // タッチ開始位置（Y軸）
+        let currentX = 0; // 現在のタッチ位置（X軸）
+        let deltaX = 0; // X軸の移動量
+        let deltaY = 0; // Y軸の移動量
+        let isSwiping = false; // スワイプ中かどうかのフラグ
+        const threshold = 50; // スワイプの有効しきい値
+        let eParam = null;
+        let nParam = null;
+
+
+        function initSwipe() {
+
+            const swipeElement = document.querySelector('#swipe img'); // スワイプ対象の要素
+
+            if (!swipeElement) {
+                console.error('スワイプ対象の要素が見つかりません');
+                return;
+            }
+            // スワイプ中に要素を表示
+            function showSwipe() {
+                swipeElement.style.opacity = '1';
+            }
+
+            // スワイプが終了したら非表示にする
+            function hideSwipe() {
+                swipeElement.style.opacity = '0';
+            }
+
+            // ページ全体のタッチイベントを制御
+            document.addEventListener('touchstart', function (event) {
+                if (event.touches.length > 1) {
+                    event.preventDefault(); // 2本指以上の場合は無効化
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchmove', function (event) {
+                if (event.touches.length > 1) {
+                    event.preventDefault(); // 2本指以上の場合は無効化
+                }
+            }, { passive: false });
+
+            // タッチ開始時の処理
+            swipeElement.addEventListener('touchstart', (event) => {
+                if (event.touches.length === 2) { // 複数タッチを無視
+                    isSwiping = true;
+                    startX = event.touches[0].clientX; // X軸のタッチ開始位置を記録
+                    startY = event.touches[0].clientY; // Y軸のタッチ開始位置を記録
+                    swipeElement.style.transition = 'none'; // アニメーションを無効化
+                    showSwipe(); // タッチ開始時に要素を表示
+
+                }
+            });
+
+            // タッチ移動中の処理
+            swipeElement.addEventListener('touchmove', (event) => {
+                if (!isSwiping) return;
+
+                currentX = event.touches[0].clientX; // 現在のX軸のタッチ位置
+                const currentY = event.touches[0].clientY; // 現在のY軸のタッチ位置
+                deltaX = currentX - startX; // X軸の移動量を計算
+                deltaY = currentY - startY; // Y軸の移動量を計算
+
+                // 縦方向の移動が多い場合は無視（横方向限定）
+                if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                    isSwiping = false; // 縦方向にスワイプされた場合は動作をキャンセル
+                    return;
+                }
+
+                swipeElement.style.transform = `translateX(${deltaX}px)`; // 横方向に要素を移動
+            });
+
+            // タッチ終了時の処理
+  swipeElement.addEventListener('touchend', () => {
+    if (!isSwiping) return;
+
+    isSwiping = false;
+    swipeElement.style.transition = 'transform 0.2s ease';
+
+    // スワイプ成功判定
+    if (Math.abs(deltaX) > threshold && nParam) {
+
+        // スワイプUIを先に消す
+        swipeElement.style.opacity = '0';
+
+        // 少し待ってから画面切り替え
+        setTimeout(() => {
+            goToL3();
+        }, 150);
+
+        return;
+    }
+
+    // 失敗時は元に戻す
+    swipeElement.style.transform = 'translateX(0)';
+});
+
+
+            // タッチキャンセル時の処理
+            swipeElement.addEventListener('touchcancel', () => {
+                if (isSwiping) {
+                    isSwiping = false;
+                    swipeElement.style.transition = 'transform 0.3s ease';
+                    swipeElement.style.transform = 'translateX(0)';
+                }
+            });
+            // パラメータを取得
+            eParam = getQueryParam('e');  // "e" パラメータを取得
+            nParam = getQueryParam('n');  // "n" パラメータを取得
+
+            loadCSVAndPopulateEvent();  // イベント情報を表示
+            setNumber();  // 整理番号を設定
+
+            // L2 → L1 遷移用リンクを設定（L2専用）
+            const nextBtn = document.querySelector('#page-l2 #nextBtnLink');
+            if (nextBtn && eParam && nParam) {
+                nextBtn.href = "./l_1.html?e=" + eParam + "&n=" + nParam;
+            }
+
+
+        };
+
+function goToL3() {
+  const l2 = document.getElementById('page-l2');
+  const l3 = document.getElementById('page-l3');
+
+  l2.classList.remove('active');
+  l3.classList.add('active');
+
+  // ★ L3が active になってから実行
+  loadCSVAndPopulateEvent();
+  setNumber();
+  setCurrentTime();   // ← これが抜けてる or タイミング不正
+
+  history.replaceState(null, '', `?e=${eParam}&n=${nParam}`);
+}
+
+
+    </script>
+
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-family: 'NotoSansCJKjp', sans-serif;
+            overflow: hidden;
+            background-color: #e5e5e5;
+            touch-action: none;
+        }
+
+        /* 動画を表示するdiv */
+        #videoContainer {
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 動画のスタイル */
+        #videoContainer video {
+            width: 100%;
+            /* 横幅を画面サイズに合わせる */
+            height: auto;
+            /* アスペクト比を維持 */
+        }
+
+        /* 画像表示枠 */
+        #imageContainer {
+            width: 100%;
+            /* 横幅を画面サイズに合わせる */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 46.7%;
+            background-color: #e5e5e5;
+            position: fixed;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        #imageContainer img {
+            max-width: 100%;
+            /* 横幅に合わせる */
+            height: auto;
+            /* アスペクト比を維持 */
+        }
+
+        #event {
+            top: 22.9%;
+            left: 2.0%;
+            font-size: 5.7vw;
+            font-weight: 600;
+            color: #e5e5e5;
+        }
+
+        #day {
+            top: 72.0%;
+            left: 8.7%;
+            font-size: 3.7vw;
+            font-weight: 400;
+            color: #e5e5e5;
+        }
+
+        #opst {
+            top: 82.9%;
+            left: 8.7%;
+            font-size: 3.7vw;
+            font-weight: 400;
+            color: #e5e5e5;
+        }
+
+        #type {
+            top: 60.5%;
+            left: 16.7%;
+            font-size: 4.0vw;
+            font-weight: 400;
+        }
+
+        #num {
+            top: 68%;
+            left: 16.7%;
+            font-size: 5.7vw;
+            font-weight: 600;
+        }
+
+        #name {
+            top: 75%;
+            left: 16.7%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        #phone {
+            top: 78.5%;
+            left: 16.7%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        #value {
+            top: 82.5%;
+            left: 16.5%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        .overlay-text {
+            position: absolute;
+            /* 親要素（imageContainer）を基準に配置 */
+            color: #fdfffae7;
+            font-size: 20px;
+            /* フォントサイズを調整 */
+            pointer-events: none;
+        }
+
+        /* フッター画像 */
+        #footer {
+            position: fixed;
+            background-color: #e5e5e5;
+            width: 100%;
+            padding: 0;
+            bottom: -0.5%;
+        }
+
+        #footer img {
+            max-width: 100%;
+            /* 横幅に合わせる */
+            height: auto;
+            /* アスペクト比を維持 */
+        }
+
+        #swipe {
+            padding-top: 14%;
+            z-index: 1001;
+        }
+
+        #swipe img {
+            opacity: 0;
+            /* 初期状態で完全に透明 */
+            position: absolute;
+            /* レイアウトに影響を与えない */
+            z-index: 1000;
+            /* 他の要素より上に表示 */
+            max-width: 100%;
+            /* 横幅に合わせる */
+            height: auto;
+            /* アスペクト比を維持 */
+            touch-action: pan-x;
+            /* 横方向のパンのみ許可 */
+
+            /* スワイプの動作を明確化 */
+        }
+
+.page {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.page.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+        /* 画像表示枠 */
+        #page-l3 #imageContainer {
+            width: 100%;
+            /* 横幅を画面サイズに合わせる */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 60%;
+            background-color: #e5e5e5;
+            position: fixed;
+            overflow: hidden;
+        }
+
+        #page-l3 #imageContainer img {
+            max-width: 100%;
+            /* 横幅に合わせる */
+            height: auto;
+            /* アスペクト比を維持 */
+        }
+
+        #page-l3 #type {
+            top: 50.5%;
+            left: 16.7%;
+            font-size: 4.0vw;
+            font-weight: 400;
+        }
+
+        #page-l3 #num {
+            top: 57.8%;
+            left: 16.7%;
+            font-size: 5.7vw;
+            font-weight: 600;
+        }
+
+        #page-l3 #name {
+            top: 63.9%;
+            left: 16.7%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        #page-l3 #phone {
+            top: 67.1%;
+            left: 16.7%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        #page-l3 #value {
+            top: 70.2%;
+            left: 16.5%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+        #page-l3 #entry {
+            top: 73.2%;
+            left: 16.5%;
+            font-size: 3.2vw;
+            font-weight: 400;
+        }
+
+                .l3overlay-text {
+            position: absolute;
+            /* 親要素（imageContainer）を基準に配置 */
+            color: #000000e7;
+            font-size: 20px;
+            /* フォントサイズを調整 */
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+<div id="page-l2" class="page active">
+    <div id="swipe">
+        <img src="swipe.png">
+    </div>
+    <!-- 動画表示領域 -->
+    <div id="videoContainer">
+        <video autoplay muted loop playsinline>
+            <source src="m2.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <a id="event" class="overlay-text"></a>
+        <a id="day" class="overlay-text"></a>
+        <a id="opst" class="overlay-text">開場 <span id="open"></span> 開演 <span id="start"></span></a>
+
+    </div>
+
+    <!-- 画像表示枠 -->
+    <div id="imageContainer">
+        <a id="nextBtnLink" href="#" target="_self">
+            <img src="tike2.jpg" alt="チケット画像">
+        </a>
+        <a id="type" class="overlay-text"></a>
+        <a id="num" class="overlay-text seiban"><span id="ref"></span><span id="number"></span></a>
+        <a id="name" class="overlay-text"><span id="tname"></span>様</a>
+        <a id="phone" class="overlay-text">08045450721</a>
+        <a id="value" class="overlay-text"><span id="price"></span>円</a>
+
+    </div>
+
+    <!-- フッター -->
+    <footer id="footer">
+        <img src="footer.png" alt="フッター画像">
+    </footer>
+</div>
+
+<div id="page-l3" class="page">
+   <!-- 動画表示領域 -->
+    <div id="videoContainer">
+        <video autoplay muted loop playsinline>
+            <source src="m.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <a id="event" class="overlay-text"></a>
+        <a id="day" class="overlay-text"></a>
+        <a id="opst" class="overlay-text">開場 <span id="open"></span> 開演 <span id="start"></span></a>
+
+    </div>
+
+    <!-- 画像表示枠 -->
+    <div id="imageContainer">
+        <a>
+            <img src="tike3.jpg" alt="チケット画像">
+        </a>
+        <a id="type" class="l3overlay-text"></a>
+        <a id="num" class="l3overlay-text seiban"><span id="ref"></span><span id="number"></span>番</a>
+        <a id="name" class="l3overlay-text"><span id="tname"></span> 様</a>
+        <a id="phone" class="l3overlay-text">08045450721</a>
+        <a id="value" class="l3overlay-text"><span id="price"></span>円</a>
+        <a id="entry" class="l3overlay-text">入場時間：<span id="time"></span></a>
+    </div>
+
+    <!-- フッター -->
+    <footer id="footer">
+        <img src="footer.png" alt="フッター画像">
+    </footer>
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- head部 -->
+    <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;600&display=swap" rel="stylesheet"/>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.json">
+</head>
+
+<!-- CSS部 -->
+<style>
+    body,
+    html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        font-family: 'NotoSansCJKjp', sans-serif;
+        overflow: hidden;
+        background-color: #e5e5e5;
+    }
+
+    /* 動画を表示するdiv */
+    #videoContainer {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+
+    /* 動画のスタイル */
+    #videoContainer video {
+        width: 100%;
+        height: auto;
+    }
+
+    /* 画像表示枠 */
+    #imageContainer {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 56%;
+        background-color: #e5e5e5;
+        position: fixed;
+        overflow: hidden;
+    }
+
+    #imageContainer img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* 透明ボタン（画像の上にかぶせるだけ） */
+    #toP2Btn {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    #event {
+        top: 22.9%;
+        left: 2.0%;
+        font-size: 5.7vw;
+        font-weight: 600;
+        color: #e5e5e5;
+    }
+
+    #day {
+        top: 72.0%;
+        left: 8.7%;
+        font-size: 3.7vw;
+        font-weight: 400;
+        color: #e5e5e5;
+    }
+
+    #opst {
+        top: 82.9%;
+        left: 8.7%;
+        font-size: 3.7vw;
+        font-weight: 400;
+        color: #e5e5e5;
+    }
+
+    #type {
+        top: 63.2%;
+        left: 16.7%;
+        font-size: 4.0vw;
+        font-weight: 400;
+    }
+
+    #num {
+        top: 67.6%;
+        left: 16.7%;
+        font-size: 5.7vw;
+        font-weight: 600;
+    }
+
+    #name {
+        top: 73.9%;
+        left: 16.7%;
+        font-size: 3.2vw;
+        font-weight: 400;
+    }
+
+    #phone {
+        top: 77.9%;
+        left: 16.7%;
+        font-size: 3.2vw;
+        font-weight: 400;
+    }
+
+    #value {
+        top: 81.3%;
+        left: 16.5%;
+        font-size: 3.2vw;
+        font-weight: 400;
+    }
+
+    .overlay-text {
+        position: absolute;
+        color: #000000e7;
+        font-size: 20px;
+        pointer-events: none;
+    }
+
+    /* フッター画像 */
+    #footer {
+        position: fixed;
+        background-color: #e5e5e5;
+        width: 100%;
+        padding: 0;
+        bottom: -0.5%;
+    }
+
+    #footer img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+
+<!-- HTML部 -->
+<body>
+    <!-- 動画表示領域 -->
+    <div id="videoContainer">
+        <video autoplay muted loop playsinline>
+            <source src="m.mp4" type="video/mp4">
+        </video>
+        <a id="event" class="overlay-text"></a>
+        <a id="day" class="overlay-text"></a>
+        <a id="opst" class="overlay-text">開場 <span id="open"></span> 開演 <span id="start"></span></a>
+    </div>
+
+    <!-- 画像表示枠 -->
+    <div id="imageContainer">
+        <img src="tike1.jpg" alt="チケット画像">
+        <!-- 透明タップエリア -->
+        <div id="toP2Btn"></div>
+        <a id="type" class="overlay-text"></a>
+        <a id="num" class="overlay-text seiban"><span id="ref"></span><span id="number"></span></a>
+        <a id="name" class="overlay-text"><span id="tname"></span> 様</a>
+        <a id="phone" class="overlay-text">08045450721</a>
+        <a id="value" class="overlay-text"><span id="price"></span>円</a>
+    </div>
+
+    <!-- フッター -->
+    <footer id="footer">
+        <img src="footer.png" alt="フッター画像">
+    </footer>
+</body>
+
+<!-- JS部 -->
+<script>
+    // URLパラメータから指定されたクエリパラメータを取得
+    function getQueryParam(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    // CSVを読み込み、"e" パラメータに基づきイベント名をHTMLに反映する
+    function loadCSVAndPopulateEvent() {
+        const eParam = getQueryParam('e');
+
+        if (eParam) {
+            fetch('data.csv')
+                .then(response => response.text())
+                .then(csvData => {
+                    const rows = csvData.split('\n');
+
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = rows[i].split(',');
+                        if (cols[0] === eParam) {
+                            const data = {
+                                event: cols[1],
+                                day: cols[2],
+                                open: cols[3],
+                                start: cols[4],
+                                type: cols[5],
+                                ref: cols[6],
+                                price: parseInt(cols[7], 10).toLocaleString(),
+                            };
+                            document.getElementById('event').textContent = data.event;
+                            document.getElementById('day').textContent = data.day;
+                            document.getElementById('open').textContent = data.open;
+                            document.getElementById('start').textContent = data.start;
+                            const rawType = data.type || '';
+                            const typeForP1 = rawType.replace(/<br\s*\/?>/gi, ' ');
+                            document.getElementById('type').textContent = typeForP1;
+                            document.getElementById('ref').textContent = data.ref;
+                            document.getElementById('price').textContent = data.price;
+
+                            if (!data.ref) {
+                                const seibanElements = document.getElementsByClassName('seiban');
+                                for (let j = 0; j < seibanElements.length; j++) {
+                                    seibanElements[j].style.display = 'none';
+                                }
+                            }
+                            break;
+                        }
+                    }
+                })
+                .catch(error => console.error('CSVの読み込みに失敗しました:', error));
+        }
+    }
+
+    // 整理番号を設定する関数
+    function setNumber() {
+        const nParam = getQueryParam('n');
+        if (nParam) {
+            // 今のHTMLには id="number" が見当たらないので、
+            // 表示するなら <span id="number"></span> をどこかに足してね
+            const numberEl = document.getElementById("number");
+            if (numberEl) numberEl.innerText = nParam;
+            setNameFromNumber(nParam);
+        }
+    }
+
+    // "number" の値を元に名前を設定
+function setNameFromNumber(key) {
+    const data = {
+"Ｂ列7番": "松本　遼以",
+"Ｃ列13番": "渡邉　恭平",
+"Ｃ列10番": "吉井　勇人",
+"Ｃ列14番": "久遠　律",
+"Ａ列13番": "横山　武蔵",
+"Ｂ列22番": "小形　恒一"
+    };
+
+    document.getElementById("tname").textContent =
+        data[key] || "該当なし";
+}
+
+    window.onload = function () {
+        // パラメータを取得
+        const eParam = getQueryParam('e');
+        const nParam = getQueryParam('n');
+
+        loadCSVAndPopulateEvent();
+        setNumber();
+
+        // 透明ボタンで l_2.html に遷移
+        const toP2Btn = document.getElementById('toP2Btn');
+        if (toP2Btn) {
+            toP2Btn.addEventListener('click', function () {
+                // パラメータをそのまま引き継ぐ
+                let url = 'l_2.html';
+                const params = [];
+                if (eParam) params.push('e=' + encodeURIComponent(eParam));
+                if (nParam) params.push('n=' + encodeURIComponent(nParam));
+                if (params.length) {
+                    url += '?' + params.join('&');
+                }
+                window.open(url, '_self');
+            });
+        }
+    };
+</script>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja" class="js flexbox objectfit object-fit csstransforms csstransforms3d csstransitions">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;600&display=swap" rel="stylesheet"/>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.json">
+  <script>
+    window.addEventListener('load', () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('sw.js')
+          .then(registration => console.log('registered', registration))
+          .catch(error => console.log('error', error));
+      }
+    });
+  </script>
+
+</head>
+
+<body>
+<!--
+  <input type="text" id="eventId" placeholder="イベントIDを入力してください">
+  <button onclick="eventURL()">イベントIDを設定</button>
+  <script>
+    function eventURL() {
+      const baseUrl = "./index.html";
+
+      // ユーザーが入力した値を取得
+      const eventId = document.getElementById("eventId").value;
+      const eventText = encodeURIComponent(eventId); // URLエンコード
+
+      // 新しいURLを構築
+      let fullUrl = `${baseUrl}?e=${eventText}`;
+
+      // 新しいタブでリンクを開く
+      window.location.href = fullUrl;
+    }
+  </script>-->
+
+<!-- 固定の場合に使用-->
+<script>
+  function eventURL() {
+    const baseUrl = "./index.html";
+    const fixedEventId = "1"; // ← 固定したい e
+    window.location.href = `${baseUrl}?e=${fixedEventId}`;
+  }
+</script>　
+
+
+  </br>
+
+<!--
+  <p>イベント名: <span id="event"></span></p>
+  <p>開催日: <span id="day"></span></p>
+  <p>開場: <span id="open"></span></p>
+  <p>開演: <span id="start"></span></p>
+  <p>券種: <span id="type"></span></p>
+  <p>種別: <span id="ref"></span></p>
+  <p>金額: <span id="price"></span></p>
+-->
+
+  <script>
+    // URLパラメータから "e" パラメータを取得
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    // CSVを読み込み、"e" パラメータに基づきイベント名をHTMLに反映する
+    function loadCSVAndPopulateEvent() {
+      const eParam = getQueryParam('e'); // "e" パラメータを取得
+
+      if (eParam) {
+        fetch('data.csv') // CSVファイルを読み込む
+          .then(response => response.text())
+          .then(csvData => {
+            const rows = csvData.split('\n');
+            const headers = rows[0].split(',');
+
+            // 各行のデータを検索
+            for (let i = 1; i < rows.length; i++) {
+              const cols = rows[i].split(',');
+              if (cols[0] === eParam) { // "e" パラメータと一致する行を探す
+                const data = {
+                  event: cols[1],   // イベント名
+                  day: cols[2],     // 開催日
+                  open: cols[3],    // 開場
+                  start: cols[4],   // 開演
+                  type: cols[5],    // 券種
+                  ref: cols[6],     // 種別
+                  price: parseInt(cols[7], 10).toLocaleString(), // 金額を数値に変換し、カンマ区切りにフォーマット
+                };
+                document.getElementById('event').textContent = data.event;
+                document.getElementById('day').textContent = data.day;
+                document.getElementById('open').textContent = data.open;
+                document.getElementById('start').textContent = data.start;
+                document.getElementById('type').textContent = data.type;
+                document.getElementById('ref').textContent = data.ref;
+                document.getElementById('price').textContent = data.price;
+                break;
+              }
+            }
+          })
+          .catch(error => console.error('CSVの読み込みに失敗しました:', error));
+      }
+    }
+
+    // ページがロードされたらCSVを読み込んでイベント情報を表示
+    window.onload = loadCSVAndPopulateEvent;
+  </script>
+  <input type="text" id="inputText" placeholder="">
+  <button onclick="openURL()"></button>
+
+<!--  <script>
+    function openURL() {
+      const baseUrl = "./l_1.html";
+
+      // ユーザーが入力した値を取得
+      const inputText = document.getElementById("inputText").value;
+      const encodedText = encodeURIComponent(inputText); // URLエンコード
+
+      // 現在のURLからクエリパラメータ 'e' を取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramE = urlParams.get('e');// "e"パラメータを取得
+      
+
+      // 新しいURLを構築
+      let fullUrl = `${baseUrl}?n=${encodedText}`;
+
+      // "e" パラメータが存在する場合、それもURLに追加
+      if (paramE) {
+        fullUrl += `&e=${encodeURIComponent(paramE)}`;
+      }
+
+      // 新しいタブでリンクを開く
+      window.open(fullUrl, '_blank');
+    }
+  </script> -->
+
+  <script>
+function openURL() {
+  const baseUrl = "./l_1.html";
+  const fixedEventId = "1"; // ← 固定
+
+  const inputText = document.getElementById("inputText").value;
+  const encodedText = encodeURIComponent(inputText);
+
+  let fullUrl = `${baseUrl}?n=${encodedText}&e=${fixedEventId}`;
+  window.open(fullUrl, '_blank');
+}
+</script>
+
+<img src="./files/A.mp4" style="width: 1px; height: 1px;">
+<img src="./files/B.mp4" style="width: 1px; height: 1px;">
+<img src="./files/A.png" style="width: 1px; height: 1px;">
+<img src="./files/B.png" style="width: 1px; height: 1px;">
+<img src="./files/C.png" style="width: 1px; height: 1px;">
+
+</body>
+
+</html>
+
