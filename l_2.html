@@ -85,16 +85,19 @@
     // "number" の値を元に名前を設定
 function setNameFromNumber(key) {
     const data = {
-"Ｂ列7番": "松本　遼以",
-"Ｃ列13番": "渡邉　恭平",
-"Ｃ列10番": "吉井　勇人",
-"Ｃ列14番": "久遠　律",
-"Ａ列13番": "横山　武蔵",
-"Ｂ列22番": "小形　恒一"
+        "Ｂ列7番": "松本　遼以",
+        "Ｃ列13番": "渡邉　恭平",
+        "Ｃ列10番": "吉井　勇人",
+        "Ｃ列14番": "久遠　律",
+        "Ａ列13番": "横山　武蔵",
+        "Ｂ列22番": "小形　恒一"
     };
 
-    document.getElementById("tname").textContent =
-        data[key] || "該当なし";
+    const name = data[key] || "該当なし";
+
+    document.querySelectorAll("#tname").forEach(el => {
+        el.textContent = name;
+    });
 }
 
 
@@ -553,7 +556,31 @@ function goToL3() {
     </footer>
 </div>
 
+<div id="page-l3" class="page">
+   <!-- 動画表示領域 -->
+    <div id="videoContainer">
+        <video autoplay muted loop playsinline>
+            <source src="m.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <a id="event" class="overlay-text"></a>
+        <a id="day" class="overlay-text"></a>
+        <a id="opst" class="overlay-text">開場 <span id="open"></span> 開演 <span id="start"></span></a>
 
+    </div>
+
+    <!-- 画像表示枠 -->
+    <div id="imageContainer">
+        <a>
+            <img src="tike3.jpg" alt="チケット画像">
+        </a>
+        <a id="type" class="l3overlay-text"></a>
+        <a id="num" class="l3overlay-text seiban"><span id="ref"></span><span id="number"></span></a>
+        <a id="name" class="l3overlay-text"><span id="tname"></span>様</a>
+        <a id="phone" class="l3overlay-text">08045450721</a>
+        <a id="value" class="l3overlay-text"><span id="price"></span>円</a>
+        <a id="entry" class="l3overlay-text">入場時間：<span id="time"></span></a>
+    </div>
 
     <!-- フッター -->
     <footer id="footer">
